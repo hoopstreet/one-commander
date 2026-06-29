@@ -1,0 +1,50 @@
+name: 🤖 Automated Response
+
+on:
+  issues:
+    types: [opened, labeled]
+  pull_request:
+    types: [opened, labeled]
+  security_advisory:
+    types: [published]
+
+permissions:
+  issues: write
+  pull-requests: write
+  security-events: write
+
+jobs:
+  auto-respond:
+    name: Automated Response
+    runs-on: ubuntu-latest
+    if: github.event_name == 'issues' || github.event_name == 'pull_request'
+    steps:
+      - name: Auto-label Security Issues
+        if: contains(github.event.issue.body, 'security') || contains(github.event.issue.body, 'vulnerability')
+        run: |
+          gh issue edit ${{ github.event.issue.number }} --add-label 'security'
+
+      - name: Respond to New Issue
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const response = `
+            ## 🤖 Automated Response
+            
+            Thank you for your contribution! Our security team will review this shortly.
+            
+            ### Security Response SLA
+            - 🔴 Critical: < 1 hour
+            - 🟠 High: < 4 hours
+            - 🟡 Medium: < 24 hours
+            - 🔵 Low: < 72 hours
+            
+            For security vulnerabilities, please report via Security Advisories.
+            `;
+            
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.payload.issue.number,
+              body: response
+            });

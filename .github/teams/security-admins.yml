@@ -1,0 +1,5 @@
+name: Security Admins
+description: Security policy owners
+permission: admin
+members:
+  - hoopstreet

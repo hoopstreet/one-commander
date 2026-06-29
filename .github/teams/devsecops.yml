@@ -1,0 +1,5 @@
+name: DevSecOps
+description: Pipeline security
+permission: push
+members:
+  - hoopstreet

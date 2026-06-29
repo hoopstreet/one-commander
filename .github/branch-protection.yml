@@ -1,0 +1,12 @@
+# Branch Protection Rules
+# Apply manually via GitHub Settings → Branches → Add rule
+
+# Required:
+# - Require pull request reviews (2 approvers)
+# - Dismiss stale reviews
+# - Require status checks to pass
+# - Require branches to be up-to-date
+# - Require signed commits
+# - Include administrators
+# - Require conversation resolution
+

@@ -1,0 +1,5 @@
+name: Platform Admins
+description: Infrastructure and CI/CD
+permission: maintain
+members:
+  - hoopstreet

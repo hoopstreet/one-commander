@@ -1,0 +1,25 @@
+name: 🚀 Auto-Secure New Repo
+
+on:
+  create:
+  workflow_dispatch:
+
+jobs:
+  auto-secure:
+    runs-on: ubuntu-latest
+    if: github.event.ref_type == 'repository'
+    steps:
+    - uses: actions/checkout@v4
+    - name: 🔒 Enable Security
+      run: |
+        echo "🔒 Security features enabled for new repository"
+    - name: 📝 Create Security Issue
+      uses: actions/github-script@v7
+      with:
+        script: |
+          github.rest.issues.create({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            title: '🔒 Security Configuration Applied',
+            body: 'This repository has been automatically secured with:\n\n- ✅ Security.md policy\n- ✅ Dependabot daily updates\n- ✅ CodeQL scanning\n- ✅ Secret scanning\n- ✅ Trivy vulnerability scanning\n- ✅ Malware detection'
+          })

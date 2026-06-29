@@ -1,0 +1,40 @@
+# Secrets
+.env
+.env.local
+.env.production
+.env.*.local
+*.secret
+*.secrets
+secrets/
+credentials/
+*.key
+*.pem
+*.crt
+
+# Build files
+node_modules/
+dist/
+build/
+*.log
+*.tmp
+
+# Large files
+core
+*.tar
+*.gz
+*.zip
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# OpenClaw local
+.openclaw/
+agents/
+workspace/

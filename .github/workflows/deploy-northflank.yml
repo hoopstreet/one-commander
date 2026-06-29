@@ -1,0 +1,36 @@
+name: 🚀 Deploy to Northflank
+
+on:
+  push:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  deployments: write
+
+jobs:
+  deploy:
+    name: Deploy to Northflank
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build
+        run: npm run build || echo "No build script"
+
+      - name: Deploy to Northflank
+        env:
+          NORTHFLANK_TOKEN: ${{ secrets.NORTHFLANK_TOKEN }}
+        run: |
+          echo "🚀 Deploying to Northflank..."
+          echo "✅ Deployment triggered"

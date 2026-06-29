@@ -1,0 +1,41 @@
+{
+  "project": "one-commander",
+  "stack": "openclaw",
+  "environment": {
+    "OPENROUTER_API_KEY": "",
+    "TELEGRAM_BOT_TOKEN": "",
+    "TELEGRAM_USER_ID": "",
+    "SUPABASE_URL": "",
+    "SUPABASE_SERVICE_KEY": "",
+    "OPENCLAW_GATEWAY_TOKEN": "",
+    "GH_PAT": "",
+    "NORTHFLANK_TOKEN": "",
+    "TAILSCALE_AUTH_KEY": "",
+    "TAILSCALE_API_KEY": "",
+    "TAILSCALE_CLIENT_ID": "",
+    "SSH_USER": "",
+    "SSH_PASSWORD": "",
+    "SSH_PORT": "",
+    "TZ": "Asia/Manila",
+    "NODE_OPTIONS": "-r /data/data/com.termux/files/home/hijack.js"
+  },
+  "resources": {
+    "cpu": "0.5",
+    "memory": "512Mi",
+    "storage": "10Gi"
+  },
+  "scaling": {
+    "min": 1,
+    "max": 1
+  },
+  "volume": {
+    "storage": "10Gi",
+    "access_mode": "ReadWriteOnce",
+    "mount_path": "/data"
+  },
+  "github": {
+    "repository": "hoopstreet/one-commander",
+    "branch": "main",
+    "path": "/northflank.json"
+  }
+}
