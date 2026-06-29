@@ -1,35 +1,43 @@
-# 🔒 Security Rules & Policies
+# 🔒 Security Policy
 
-## Authentication
-- Only Telegram user ID: 8296776401 is allowed
-- Gateway requires token authentication
-- All connections must be encrypted
+## Supported Versions
 
-## Access Control
-- Telegram DM Policy: Allowlist only
-- Gateway bound to loopback (127.0.0.1)
-- SSH key authentication required
+| Version | Supported |
+|---------|-----------|
+| latest  | ✅        |
 
-## Security Practices
-- No secrets in code
-- Environment variables for all credentials
-- Regular security audits
+## Reporting a Vulnerability
 
-## Anti-Tampering
-- Code signing verification
-- Integrity checks on startup
-- Tamper-proof config
+🚨 **DO NOT OPEN PUBLIC ISSUES**
 
-## End-to-End Encryption
-- All external communications encrypted
-- Tailscale VPN for remote access
-- SSH with key authentication
+1. Go to **Security** → **Advisories** → **New draft security advisory**
+2. Provide:
+   - Description
+   - Impact
+   - Steps to Reproduce
+   - Proposed Fix
+3. Response: 24 hours initial, 7 days for fix
 
-## Permanent Connections
-- Only one authorized connection: Termux ↔ Telegram
-- Single user only: Xenia Xu
-- Multi-factor authentication enabled
+## Security Features
 
-## Reporting Issues
-- Contact: hoopstreet143@gmail.com
-- Response time: < 24 hours
+### Automated
+- ✅ Dependabot (daily updates, auto-merge for patches)
+- ✅ CodeQL (semantic code analysis)
+- ✅ Trivy (vulnerability scanning)
+- ✅ Gitleaks (secret detection)
+- ✅ Bandit (Python security)
+- ✅ Branch protection (PR required)
+
+### Manual
+- 🔐 Signed commits required
+- 🔐 2FA mandatory for all contributors
+- 🔐 Regular security audits
+
+## Responsible Disclosure
+- Report privately via GitHub Security Advisory
+- Allow 90 days for fix
+- Public disclosure with credit after fix
+
+## Security Contacts
+- Email: hoopstreet143@gmail.com
+- GitHub: @hoopstreet
