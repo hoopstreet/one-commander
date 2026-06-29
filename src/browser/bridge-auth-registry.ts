@@ -1,0 +1,31 @@
+type BridgeAuth = {
+  token?: string;
+};
+
+// In-process registry for loopback-only bridge servers that require auth, but
+// are addressed via dynamic ephemeral ports (e.g. sandbox browser bridge).
+const authByPort = new Map<number, BridgeAuth>();
+
+export function setBridgeAuthForPort(port: number, auth: BridgeAuth): void {
+  if (!Number.isFinite(port) || port <= 0) {
+    return;
+  }
+  const token = typeof auth.token === "string" ? auth.token.trim() : "";
+  authByPort.set(port, {
+    token: token || undefined,
+  });
+}
+
+export function getBridgeAuthForPort(port: number): BridgeAuth | undefined {
+  if (!Number.isFinite(port) || port <= 0) {
+    return undefined;
+  }
+  return authByPort.get(port);
+}
+
+export function deleteBridgeAuthForPort(port: number): void {
+  if (!Number.isFinite(port) || port <= 0) {
+    return;
+  }
+  authByPort.delete(port);
+}
