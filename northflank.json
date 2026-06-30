@@ -19,10 +19,7 @@
               },
               "allowedIngressProjects": []
             },
-            "region": "asia-southeast",
-            "customRegistry": {
-              "enabled": false
-            }
+            "region": "europe-west"
           }
         },
         {
