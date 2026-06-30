@@ -1,41 +1,193 @@
 {
-  "project": "one-commander",
-  "stack": "openclaw",
-  "environment": {
-    "OPENROUTER_API_KEY": "",
-    "TELEGRAM_BOT_TOKEN": "",
-    "TELEGRAM_USER_ID": "",
-    "SUPABASE_URL": "",
-    "SUPABASE_SERVICE_KEY": "",
-    "OPENCLAW_GATEWAY_TOKEN": "",
-    "GH_PAT": "",
-    "NORTHFLANK_TOKEN": "",
-    "TAILSCALE_AUTH_KEY": "",
-    "TAILSCALE_API_KEY": "",
-    "TAILSCALE_CLIENT_ID": "",
-    "SSH_USER": "",
-    "SSH_PASSWORD": "",
-    "SSH_PORT": "",
-    "TZ": "Asia/Manila",
-    "NODE_OPTIONS": "-r /data/data/com.termux/files/home/hijack.js"
+  "$schema": "https://api.northflank.com/v1/schemas/template",
+  "apiVersion": "v1.2",
+  "spec": {
+    "kind": "Workflow",
+    "spec": {
+      "type": "sequential",
+      "steps": [
+        {
+          "kind": "Project",
+          "ref": "openclaw",
+          "spec": {
+            "name": "OpenClaw",
+            "color": "#EF233C",
+            "networking": {
+              "tailscale": {
+                "authKeyTags": [],
+                "enabled": false
+              },
+              "allowedIngressProjects": []
+            },
+            "region": "asia-southeast",
+            "customRegistry": {
+              "enabled": false
+            }
+          }
+        },
+        {
+          "kind": "Workflow",
+          "spec": {
+            "type": "sequential",
+            "context": {
+              "projectId": "${refs.openclaw.id}"
+            },
+            "steps": [
+              {
+                "kind": "SecretGroup",
+                "spec": {
+                  "type": "secret",
+                  "secretType": "environment-arguments",
+                  "priority": 10,
+                  "secrets": {
+                    "variables": {
+                      "SETUP_PASSWORD": "${args.SETUP_PASSWORD}",
+                      "OPENCLAW_STATE_DIR": "/data/.openclaw",
+                      "OPENCLAW_WORKSPACE_DIR": "/data/workspace",
+                      "OPENCLAW_GATEWAY_TOKEN": "${fn.randomSecret(32)}"
+                    },
+                    "files": {},
+                    "dockerSecretMounts": {}
+                  },
+                  "addonDependencies": [],
+                  "name": "OpenClaw Secrets",
+                  "restrictions": {
+                    "restricted": false,
+                    "nfObjects": [],
+                    "tags": []
+                  }
+                },
+                "ref": "openclaw-secrets"
+              },
+              {
+                "kind": "CombinedService",
+                "ref": "openclaw-service",
+                "spec": {
+                  "deployment": {
+                    "instances": 1,
+                    "storage": {
+                      "ephemeralStorage": {
+                        "storageSize": 1024
+                      },
+                      "shmSize": 64
+                    },
+                    "docker": {
+                      "configType": "default"
+                    }
+                  },
+                  "loadBalancing": {
+                    "mode": "leastConnection"
+                  },
+                  "buildSettings": {
+                    "storage": {
+                      "ephemeralStorage": {
+                        "storageSize": 16384
+                      }
+                    },
+                    "dockerfile": {
+                      "buildEngine": "buildkit",
+                      "dockerWorkDir": "/",
+                      "dockerFilePath": "/Dockerfile",
+                      "buildkit": {
+                        "useCache": false,
+                        "cacheStorageSize": 16384
+                      }
+                    }
+                  },
+                  "billing": {
+                    "deploymentPlan": "nf-compute-100-4",
+                    "buildPlan": "nf-compute-400-16"
+                  },
+                  "vcsData": {
+                    "projectUrl": "https://github.com/northflank-examples/clawdbot-northflank-template",
+                    "projectType": "github",
+                    "projectBranch": "main"
+                  },
+                  "runtimeEnvironment": {},
+                  "runtimeFiles": {},
+                  "buildArguments": {},
+                  "buildFiles": {},
+                  "dockerSecretMounts": {},
+                  "infrastructure": {
+                    "architecture": "x86"
+                  },
+                  "name": "OpenClaw Service",
+                  "ports": [
+                    {
+                      "internalPort": 8080,
+                      "protocol": "HTTP",
+                      "name": "p01",
+                      "public": true,
+                      "domains": [],
+                      "security": {
+                        "policies": [],
+                        "credentials": []
+                      },
+                      "disableNfDomain": false
+                    }
+                  ],
+                  "disabledCI": false,
+                  "buildConfiguration": {
+                    "pathIgnoreRules": [],
+                    "isAllowList": false,
+                    "ciIgnoreFlagsEnabled": false
+                  },
+                  "healthChecks": [
+                    {
+                      "type": "startupProbe",
+                      "protocol": "HTTP",
+                      "path": "/healthz",
+                      "port": 8080,
+                      "initialDelaySeconds": 5,
+                      "periodSeconds": 60,
+                      "timeoutSeconds": 10,
+                      "failureThreshold": 3
+                    }
+                  ]
+                }
+              },
+              {
+                "kind": "Volume",
+                "spec": {
+                  "spec": {
+                    "accessMode": "ReadWriteOnce",
+                    "storageSize": 10240,
+                    "storageClassName": "nvme"
+                  },
+                  "mounts": [
+                    {
+                      "containerMountPath": "/data",
+                      "volumeMountPath": ""
+                    }
+                  ],
+                  "name": "OpenClaw Volume",
+                  "attachedObjects": [
+                    {
+                      "id": "${refs.openclaw-service.id}",
+                      "type": "service"
+                    }
+                  ]
+                },
+                "ref": "openclaw-volume"
+              }
+            ]
+          }
+        }
+      ]
+    }
   },
-  "resources": {
-    "cpu": "0.5",
-    "memory": "512Mi",
-    "storage": "10Gi"
+  "arguments": {
+    "SETUP_PASSWORD": ""
   },
-  "scaling": {
-    "min": 1,
-    "max": 1
+  "options": {
+    "autorun": true,
+    "concurrencyPolicy": "allow"
   },
-  "volume": {
-    "storage": "10Gi",
-    "access_mode": "ReadWriteOnce",
-    "mount_path": "/data"
-  },
-  "github": {
-    "repository": "hoopstreet/one-commander",
+  "gitops": {
+    "repoUrl": "https://github.com/hoopstreet/one-commander",
+    "vcsService": "github",
+    "accountLogin": "hoopstreet",
     "branch": "main",
-    "path": "/northflank.json"
+    "filePath": "/northflank.json"
   }
 }
