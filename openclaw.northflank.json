@@ -1,0 +1,37 @@
+{
+  "$schema": "https://raw.githubusercontent.com/openclaw/openclaw/main/docs/schemas/config.schema.json",
+  "agent": {
+    "model": "gpt-4o-mini",
+    "provider": "openai"
+  },
+  "gateway": {
+    "port": 18789,
+    "bind": "lan",
+    "auth": {
+      "mode": "password"
+    },
+    "allowUnconfigured": true
+  },
+  "channels": {
+    "telegram": {
+      "botToken": "${TELEGRAM_BOT_TOKEN}",
+      "webhookUrl": null,
+      "allowFrom": ["*"],
+      "dmPolicy": "open"
+    }
+  },
+  "agents": {
+    "defaults": {
+      "workspace": "/data/workspace",
+      "sandbox": {
+        "mode": "non-main"
+      }
+    }
+  },
+  "browser": {
+    "enabled": false
+  },
+  "logging": {
+    "level": "info"
+  }
+}

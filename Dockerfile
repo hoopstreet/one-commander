@@ -39,10 +39,14 @@ RUN chown -R node:node /app
 # This reduces the attack surface by preventing container escape via root privileges
 USER node
 
-# Start gateway server with default config.
-# Binds to loopback (127.0.0.1) by default for security.
-#
-# For container platforms requiring external health checks:
-#   1. Set OPENCLAW_GATEWAY_TOKEN or OPENCLAW_GATEWAY_PASSWORD env var
-#   2. Override CMD: ["node","openclaw.mjs","gateway","--allow-unconfigured","--bind","lan"]
-CMD ["node", "openclaw.mjs", "gateway", "--allow-unconfigured"]
+# Start gateway server with Northflank-compatible configuration.
+# Binds to LAN (0.0.0.0) for Northflank deployment
+# Supports health checks on /healthz endpoint
+# Uses environment variables for configuration:
+#   - OPENCLAW_GATEWAY_PORT: Gateway port (default: 18789)
+#   - OPENCLAW_GATEWAY_BIND: Bind address (lan for Northflank)
+#   - OPENCLAW_GATEWAY_TOKEN: Authentication token
+#   - OPENCLAW_GATEWAY_PASSWORD: Password for basic auth
+#   - TELEGRAM_BOT_TOKEN: Telegram bot token
+#   - OPENCLAW_GATEWAY_ALLOW_UNCONFIGURED: Allow unconfigured startup
+CMD ["node", "openclaw.mjs", "gateway", "--allow-unconfigured", "--bind", "lan"]

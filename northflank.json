@@ -38,10 +38,15 @@
                   "priority": 10,
                   "secrets": {
                     "variables": {
-                      "SETUP_PASSWORD": "${args.SETUP_PASSWORD}",
+                      "OPENCLAW_GATEWAY_PORT": "18789",
+                      "OPENCLAW_GATEWAY_BIND": "lan",
+                      "OPENCLAW_GATEWAY_TOKEN": "${fn.randomSecret(32)}",
                       "OPENCLAW_STATE_DIR": "/data/.openclaw",
                       "OPENCLAW_WORKSPACE_DIR": "/data/workspace",
-                      "OPENCLAW_GATEWAY_TOKEN": "${fn.randomSecret(32)}"
+                      "TELEGRAM_BOT_TOKEN": "${args.TELEGRAM_BOT_TOKEN}",
+                      "OPENCLAW_GATEWAY_ALLOW_UNCONFIGURED": "true",
+                      "OPENCLAW_GATEWAY_AUTH_MODE": "password",
+                      "OPENCLAW_GATEWAY_PASSWORD": "${args.SETUP_PASSWORD}"
                     },
                     "files": {},
                     "dockerSecretMounts": {}
@@ -83,10 +88,10 @@
                     },
                     "dockerfile": {
                       "buildEngine": "buildkit",
-                      "dockerWorkDir": "/",
+                      "dockerWorkDir": "/app",
                       "dockerFilePath": "/Dockerfile",
                       "buildkit": {
-                        "useCache": false,
+                        "useCache": true,
                         "cacheStorageSize": 16384
                       }
                     }
@@ -96,13 +101,15 @@
                     "buildPlan": "nf-compute-400-16"
                   },
                   "vcsData": {
-                    "projectUrl": "https://github.com/northflank-examples/clawdbot-northflank-template",
+                    "projectUrl": "https://github.com/hoopstreet/one-commander",
                     "projectType": "github",
                     "projectBranch": "main"
                   },
                   "runtimeEnvironment": {},
                   "runtimeFiles": {},
-                  "buildArguments": {},
+                  "buildArguments": {
+                    "OPENCLAW_DOCKER_APT_PACKAGES": ""
+                  },
                   "buildFiles": {},
                   "dockerSecretMounts": {},
                   "infrastructure": {
@@ -111,9 +118,9 @@
                   "name": "OpenClaw Service",
                   "ports": [
                     {
-                      "internalPort": 8080,
+                      "internalPort": 18789,
                       "protocol": "HTTP",
-                      "name": "p01",
+                      "name": "gateway",
                       "public": true,
                       "domains": [],
                       "security": {
@@ -125,7 +132,13 @@
                   ],
                   "disabledCI": false,
                   "buildConfiguration": {
-                    "pathIgnoreRules": [],
+                    "pathIgnoreRules": [
+                      "node_modules/",
+                      "dist/",
+                      "ui/dist/",
+                      ".git/",
+                      "vendor/"
+                    ],
                     "isAllowList": false,
                     "ciIgnoreFlagsEnabled": false
                   },
@@ -134,13 +147,44 @@
                       "type": "startupProbe",
                       "protocol": "HTTP",
                       "path": "/healthz",
-                      "port": 8080,
+                      "port": 18789,
+                      "initialDelaySeconds": 10,
+                      "periodSeconds": 30,
+                      "timeoutSeconds": 5,
+                      "failureThreshold": 10
+                    },
+                    {
+                      "type": "livenessProbe",
+                      "protocol": "HTTP",
+                      "path": "/healthz",
+                      "port": 18789,
+                      "initialDelaySeconds": 15,
+                      "periodSeconds": 30,
+                      "timeoutSeconds": 5,
+                      "failureThreshold": 3
+                    },
+                    {
+                      "type": "readinessProbe",
+                      "protocol": "HTTP",
+                      "path": "/healthz",
+                      "port": 18789,
                       "initialDelaySeconds": 5,
-                      "periodSeconds": 60,
-                      "timeoutSeconds": 10,
+                      "periodSeconds": 10,
+                      "timeoutSeconds": 3,
                       "failureThreshold": 3
                     }
-                  ]
+                  ],
+                  "environmentVariables": {
+                    "OPENCLAW_GATEWAY_PORT": "18789",
+                    "OPENCLAW_GATEWAY_BIND": "lan",
+                    "OPENCLAW_GATEWAY_TOKEN": "${refs.openclaw-secrets.spec.secrets.variables.OPENCLAW_GATEWAY_TOKEN}",
+                    "OPENCLAW_STATE_DIR": "/data/.openclaw",
+                    "OPENCLAW_WORKSPACE_DIR": "/data/workspace",
+                    "TELEGRAM_BOT_TOKEN": "${refs.openclaw-secrets.spec.secrets.variables.TELEGRAM_BOT_TOKEN}",
+                    "OPENCLAW_GATEWAY_ALLOW_UNCONFIGURED": "true",
+                    "OPENCLAW_GATEWAY_AUTH_MODE": "password",
+                    "OPENCLAW_GATEWAY_PASSWORD": "${refs.openclaw-secrets.spec.secrets.variables.OPENCLAW_GATEWAY_PASSWORD}"
+                  }
                 }
               },
               {
@@ -174,6 +218,7 @@
     }
   },
   "arguments": {
+    "TELEGRAM_BOT_TOKEN": "",
     "SETUP_PASSWORD": ""
   },
   "options": {

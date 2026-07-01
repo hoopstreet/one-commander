@@ -480,6 +480,15 @@ export function createGatewayHttpServer(opts: {
       const configSnapshot = loadConfig();
       const trustedProxies = configSnapshot.gateway?.trustedProxies ?? [];
       const requestPath = new URL(req.url ?? "/", "http://localhost").pathname;
+      
+      // Health check endpoint for container orchestration (Northflank, Kubernetes, etc.)
+      if (requestPath === "/healthz") {
+        res.statusCode = 200;
+        res.setHeader("Content-Type", "text/plain; charset=utf-8");
+        res.end("OK");
+        return;
+      }
+=======
       if (await handleHooksRequest(req, res)) {
         return;
       }
