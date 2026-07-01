@@ -1,0 +1,258 @@
+name: Northflank CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, develop, feature/* ]
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - '.gitignore'
+      - 'LICENSE'
+      - 'README.md'
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+    inputs:
+      force_deploy:
+        description: 'Force deployment even if tests fail'
+        required: false
+        default: 'false'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+  NORTHFLANK_PROJECT: openclaw
+  DOCKER_BUILDKIT: 1
+  PNPM_VERSION: 8.15.0
+
+jobs:
+  security-scan:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+          severity: 'CRITICAL,HIGH'
+
+      - name: Upload Trivy scan results to GitHub Security tab
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: 'trivy-results.sarif'
+
+      - name: Run secret scanning
+        uses: trufflesecurity/trufflehog@main
+        with:
+          path: ./
+          base: ${{ github.event.repository.default_branch }}
+          head: HEAD
+          extra_args: --debug --only-verified
+
+  lint-and-test:
+    name: Lint and Test
+    runs-on: ubuntu-latest
+    needs: security-scan
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'pnpm'
+
+      - name: Install pnpm
+        run: |
+          npm install -g pnpm@${{ env.PNPM_VERSION }}
+          pnpm --version
+
+      - name: Install dependencies
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm ui:build
+
+      - name: Run linting
+        run: |
+          pnpm lint
+          pnpm typecheck
+
+      - name: Run unit tests
+        run: |
+          pnpm test:unit
+
+      - name: Run integration tests
+        run: |
+          pnpm test:integration
+
+      - name: Build Docker image
+        run: |
+          docker build -t ${{ env.IMAGE_NAME }}:test .
+
+  build-and-push:
+    name: Build and Push Docker Image
+    runs-on: ubuntu-latest
+    needs: lint-and-test
+    if: github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=semver,pattern={{major}}
+            type=sha
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          build-args: |
+            OPENCLAW_DOCKER_APT_PACKAGES=ffmpeg libwebp libheif libimage-exiftool
+
+  deploy-northflank:
+    name: Deploy to Northflank
+    runs-on: ubuntu-latest
+    needs: build-and-push
+    if: github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
+    environment:
+      name: production
+      url: https://${{ secrets.NORTHFLANK_SERVICE_URL }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Northflank CLI
+        run: |
+          curl -fsSL https://cli.northflank.com/install | bash
+          echo "$HOME/.northflank/bin" >> $GITHUB_PATH
+
+      - name: Authenticate with Northflank
+        run: |
+          nf login --api-url https://api.northflank.com --token ${{ secrets.NORTHFLANK_API_TOKEN }}
+
+      - name: Deploy to Northflank
+        run: |
+          # Deploy using the northflank.json template
+          nf apply -f northflank.json \
+            --set args.TELEGRAM_BOT_TOKEN=${{ secrets.TELEGRAM_BOT_TOKEN }} \
+            --set args.GATEWAY_PASSWORD=${{ secrets.GATEWAY_PASSWORD }} \
+            --set args.OPENCLAW_CONFIG='${{ secrets.OPENCLAW_CONFIG }}'
+
+      - name: Verify deployment
+        run: |
+          # Wait for service to be ready
+          sleep 60
+          # Check health endpoint
+          curl -f http://${{ secrets.NORTHFLANK_SERVICE_URL }}/healthz || true
+          # Check WebSocket connection
+          timeout 5 bash -c "until echo | websocat -t -1 ws://${{ secrets.NORTHFLANK_SERVICE_URL }}:18789 2>/dev/null; do sleep 1; done" || true
+
+      - name: Configure Telegram Webhook
+        run: |
+          # Set up Telegram webhook
+          curl -X POST \
+            "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/setWebhook" \
+            -H "Content-Type: application/json" \
+            -d '{"url": "https://${{ secrets.NORTHFLANK_SERVICE_URL }}/telegram-webhook", "secret_token": "${{ secrets.TELEGRAM_WEBHOOK_SECRET }}", "max_connections": 100, "allowed_updates": ["message", "edited_message", "channel_post", "edited_channel_post", "inline_query", "chosen_inline_result", "callback_query", "shipping_query", "pre_checkout_query", "poll", "poll_answer", "my_chat_member", "chat_member", "chat_join_request"]}'
+
+      - name: Notify deployment success
+        if: success()
+        uses: rtCamp/action-slack-notify@v2
+        env:
+          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
+          SLACK_COLOR: good
+          SLACK_TITLE: "OpenClaw Deployment Successful"
+          SLACK_MESSAGE: "OpenClaw has been successfully deployed to Northflank"
+          SLACK_FOOTER: "GitHub Actions"
+
+  flutter-integration-test:
+    name: Flutter Integration Test
+    runs-on: ubuntu-latest
+    needs: deploy-northflank
+    if: github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
+    steps:
+      - name: Checkout Flutter app repository
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ secrets.FLUTTER_REPO }}
+          token: ${{ secrets.FLUTTER_REPO_TOKEN }}
+          path: flutter-app
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.19.5'
+          channel: 'stable'
+
+      - name: Run Flutter integration tests
+        run: |
+          cd flutter-app
+          flutter pub get
+          flutter test integration_test/openclaw_connection_test.dart
+        env:
+          OPENCLAW_GATEWAY_URL: ws://${{ secrets.NORTHFLANK_SERVICE_URL }}:18789
+          OPENCLAW_GATEWAY_TOKEN: ${{ secrets.GATEWAY_TOKEN }}
+          FLUTTER_APP_TOKEN: ${{ secrets.FLUTTER_APP_TOKEN }}
+
+  cleanup:
+    name: Cleanup
+    runs-on: ubuntu-latest
+    if: always()
+    needs: [security-scan, lint-and-test, build-and-push, deploy-northflank, flutter-integration-test]
+    steps:
+      - name: Remove old Docker images
+        run: |
+          docker system prune -f
+      - name: Clear pnpm cache
+        run: |
+          pnpm store prune
+      - name: Notify cleanup completion
+        if: always()
+        uses: rtCamp/action-slack-notify@v2
+        env:
+          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
+          SLACK_COLOR: ${{ job.status == 'success' && 'good' || 'danger' }}
+          SLACK_TITLE: "OpenClaw CI/CD Cleanup Completed"
+          SLACK_MESSAGE: "CI/CD pipeline cleanup finished with status: ${{ job.status }}"
+          SLACK_FOOTER: "GitHub Actions"
