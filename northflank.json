@@ -78,18 +78,18 @@
                     "mode": "leastConnection"
                   },
                   "buildSettings": {
-                    "storage": {
-                      "ephemeralStorage": {
-                        "storageSize": 16384
-                      }
-                    },
                     "dockerfile": {
-                      "buildEngine": "buildkit",
                       "dockerWorkDir": "/",
                       "dockerFilePath": "/Dockerfile",
+                      "buildEngine": "buildkit",
                       "buildkit": {
                         "useCache": false,
                         "cacheStorageSize": 16384
+                      }
+                    },
+                    "storage": {
+                      "ephemeralStorage": {
+                        "storageSize": 16384
                       }
                     }
                   },
@@ -98,9 +98,10 @@
                     "buildPlan": "nf-compute-400-16"
                   },
                   "vcsData": {
-                    "projectUrl": "https://github.com/northflank-examples/clawdbot-northflank-template",
+                    "projectUrl": "https://github.com/hoopstreet/one-commander",
                     "projectType": "github",
-                    "projectBranch": "main"
+                    "projectBranch": "main",
+                    "accountLogin": "hoopstreet"
                   },
                   "runtimeEnvironment": {},
                   "runtimeFiles": {},
@@ -120,7 +121,10 @@
                       "domains": [],
                       "security": {
                         "policies": [],
-                        "credentials": []
+                        "credentials": [],
+                        "securePathConfiguration": {
+                          "rules": []
+                        }
                       },
                       "disableNfDomain": false
                     }
