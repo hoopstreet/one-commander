@@ -1,0 +1,161 @@
+{
+  "$schema": "https://api.northflank.com/v1/schemas/service",
+  "apiVersion": "v1.2",
+  "spec": {
+    "kind": "CombinedService",
+    "spec": {
+      "name": "one-commander",
+      "description": "OpenClaw Gateway with Telegram integration",
+      "deployment": {
+        "instances": 1,
+        "minInstances": 1,
+        "maxInstances": 3,
+        "storage": {
+          "ephemeralStorage": {
+            "storageSize": 2048
+          },
+          "shmSize": 128
+        },
+        "docker": {
+          "configType": "default",
+          "privileged": false,
+          "readOnlyRootFilesystem": true
+        }
+      },
+      "loadBalancing": {
+        "mode": "leastConnection",
+        "sessionAffinity": "cookie"
+      },
+      "buildSettings": {
+        "storage": {
+          "ephemeralStorage": {
+            "storageSize": 16384
+          }
+        },
+        "dockerfile": {
+          "buildEngine": "buildkit",
+          "dockerWorkDir": "/app",
+          "dockerFilePath": "/Dockerfile",
+          "buildkit": {
+            "useCache": true,
+            "cacheStorageSize": 16384
+          }
+        }
+      },
+      "billing": {
+        "deploymentPlan": "nf-compute-200-8",
+        "buildPlan": "nf-compute-400-16"
+      },
+      "vcsData": {
+        "projectUrl": "https://github.com/hoopstreet/one-commander",
+        "projectType": "github",
+        "projectBranch": "main"
+      },
+      "runtimeEnvironment": {},
+      "runtimeFiles": {},
+      "buildArguments": {
+        "OPENCLAW_DOCKER_APT_PACKAGES": "ffmpeg libwebp libheif libimage-exiftool"
+      },
+      "buildFiles": {},
+      "dockerSecretMounts": {},
+      "infrastructure": {
+        "architecture": "x86"
+      },
+      "ports": [
+        {
+          "internalPort": 18789,
+          "protocol": "HTTP",
+          "name": "gateway-ws",
+          "public": true,
+          "domains": [],
+          "security": {
+            "policies": [
+              {
+                "type": "ipAllowList",
+                "value": "0.0.0.0/0"
+              }
+            ],
+            "credentials": []
+          },
+          "disableNfDomain": false
+        }
+      ],
+      "disabledCI": false,
+      "buildConfiguration": {
+        "pathIgnoreRules": [
+          "node_modules/",
+          "dist/",
+          "ui/dist/",
+          ".git/",
+          "vendor/",
+          "*.log",
+          "*.tmp"
+        ],
+        "isAllowList": false,
+        "ciIgnoreFlagsEnabled": false
+      },
+      "healthChecks": [
+        {
+          "type": "startupProbe",
+          "protocol": "HTTP",
+          "path": "/healthz",
+          "port": 18789,
+          "initialDelaySeconds": 15,
+          "periodSeconds": 30,
+          "timeoutSeconds": 5,
+          "failureThreshold": 15,
+          "successThreshold": 1
+        },
+        {
+          "type": "livenessProbe",
+          "protocol": "HTTP",
+          "path": "/healthz",
+          "port": 18789,
+          "initialDelaySeconds": 30,
+          "periodSeconds": 20,
+          "timeoutSeconds": 3,
+          "failureThreshold": 3,
+          "successThreshold": 1
+        },
+        {
+          "type": "readinessProbe",
+          "protocol": "HTTP",
+          "path": "/healthz",
+          "port": 18789,
+          "initialDelaySeconds": 10,
+          "periodSeconds": 10,
+          "timeoutSeconds": 2,
+          "failureThreshold": 3,
+          "successThreshold": 1
+        }
+      ],
+      "environmentVariables": {
+        "OPENCLAW_GATEWAY_PORT": "18789",
+        "OPENCLAW_GATEWAY_BIND": "lan",
+        "OPENCLAW_GATEWAY_TOKEN": "${args.GATEWAY_TOKEN}",
+        "OPENCLAW_GATEWAY_PASSWORD": "${args.GATEWAY_PASSWORD}",
+        "OPENCLAW_STATE_DIR": "/data/.openclaw",
+        "OPENCLAW_WORKSPACE_DIR": "/data/workspace",
+        "TELEGRAM_BOT_TOKEN": "${args.TELEGRAM_BOT_TOKEN}",
+        "TELEGRAM_WEBHOOK_SECRET": "${args.TELEGRAM_WEBHOOK_SECRET}",
+        "FLUTTER_APP_TOKEN": "${args.FLUTTER_APP_TOKEN}",
+        "OPENCLAW_GATEWAY_ALLOW_UNCONFIGURED": "true",
+        "OPENCLAW_GATEWAY_AUTH_MODE": "password",
+        "OPENCLAW_GATEWAY_TRUSTED_PROXIES": "10.0.0.0/8,172.16.0.0/12,192.168.0.0/16",
+        "OPENCLAW_GATEWAY_RATE_LIMIT": "100",
+        "OPENCLAW_GATEWAY_MAX_CONNECTIONS": "1000",
+        "OPENCLAW_LOGGING_LEVEL": "info",
+        "OPENCLAW_SECURITY_AUDIT_ENABLED": "true",
+        "OPENCLAW_SESSION_PRUNING_ENABLED": "true",
+        "OPENCLAW_SESSION_MAX_AGE_HOURS": "24"
+      }
+    }
+  },
+  "arguments": {
+    "TELEGRAM_BOT_TOKEN": "8809223927:AAHs7myPMYFYYBcABbXH-jguY_gBPZm1LCU",
+    "GATEWAY_PASSWORD": "",
+    "GATEWAY_TOKEN": "",
+    "TELEGRAM_WEBHOOK_SECRET": "",
+    "FLUTTER_APP_TOKEN": ""
+  }
+}

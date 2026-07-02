@@ -20,21 +20,15 @@ repos:
       - id: check-merge-conflict
 
   # Secret detection (same as CI)
+  - repo: https://github.com/Yelp/detect-secrets
     rev: v1.5.0
     hooks:
+      - id: detect-secrets
         args:
           - --baseline
           - --exclude-files
           - --exclude-lines
           - 'key_content\.include\?\("BEGIN PRIVATE KEY"\)'
-          - --exclude-lines
-          - --exclude-lines
-          - --exclude-lines
-          - --exclude-lines
-          - --exclude-lines
-          - --exclude-lines
-          - '=== "string"'
-          - --exclude-lines
 
   # Shell script linting
   - repo: https://github.com/koalaman/shellcheck-precommit

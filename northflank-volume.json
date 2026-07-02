@@ -1,0 +1,28 @@
+{
+  "$schema": "https://api.northflank.com/v1/schemas/volume",
+  "apiVersion": "v1.2",
+  "spec": {
+    "kind": "Volume",
+    "spec": {
+      "name": "one-commander-data",
+      "description": "Persistent storage for OpenClaw state, workspace, and configuration",
+      "spec": {
+        "accessMode": "ReadWriteOnce",
+        "storageSize": 20480,
+        "storageClassName": "nvme"
+      },
+      "mounts": [
+        {
+          "containerMountPath": "/data",
+          "volumeMountPath": ""
+        }
+      ],
+      "attachedObjects": [
+        {
+          "id": "one-commander",
+          "type": "service"
+        }
+      ]
+    }
+  }
+}
