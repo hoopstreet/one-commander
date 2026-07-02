@@ -10,18 +10,18 @@
           "kind": "Project",
           "ref": "openclaw",
           "spec": {
-            "name": "OpenClaw Gateway",
-            "color": "#EF233C",
-            "description": "Personal AI Assistant Gateway with Telegram, Flutter, and Multi-Channel Support",
+            "name": "OpenClaw",
+            "color": "#57637A",
             "networking": {
               "tailscale": {
-                "authKeyTags": ["openclaw", "gateway"],
+                "authKeyTags": [],
                 "enabled": false
-              },
-              "allowedIngressProjects": []
+              }
             },
             "region": "europe-west",
-            "tags": ["ai", "gateway", "telegram", "flutter", "production"]
+            "customRegistry": {
+              "enabled": false
+            }
           }
         },
         {
@@ -40,64 +40,42 @@
                   "priority": 10,
                   "secrets": {
                     "variables": {
-                      "OPENCLAW_GATEWAY_PORT": "18789",
-                      "OPENCLAW_GATEWAY_BIND": "lan",
-                      "OPENCLAW_GATEWAY_TOKEN": "${fn.randomSecret(64)}",
-                      "OPENCLAW_GATEWAY_PASSWORD": "${args.GATEWAY_PASSWORD}",
+                      "SETUP_PASSWORD": "${args.SETUP_PASSWORD}",
                       "OPENCLAW_STATE_DIR": "/data/.openclaw",
                       "OPENCLAW_WORKSPACE_DIR": "/data/workspace",
-                      "TELEGRAM_BOT_TOKEN": "${args.TELEGRAM_BOT_TOKEN}",
-                      "TELEGRAM_WEBHOOK_SECRET": "${fn.randomSecret(32)}",
-                      "FLUTTER_APP_TOKEN": "${fn.randomSecret(32)}",
-                      "OPENCLAW_GATEWAY_ALLOW_UNCONFIGURED": "true",
-                      "OPENCLAW_GATEWAY_AUTH_MODE": "password",
-                      "OPENCLAW_GATEWAY_TRUSTED_PROXIES": "10.0.0.0/8,172.16.0.0/12,192.168.0.0/16",
-                      "OPENCLAW_GATEWAY_RATE_LIMIT": "100",
-                      "OPENCLAW_GATEWAY_MAX_CONNECTIONS": "1000",
-                      "OPENCLAW_LOGGING_LEVEL": "info",
-                      "OPENCLAW_SECURITY_AUDIT_ENABLED": "true",
-                      "OPENCLAW_SESSION_PRUNING_ENABLED": "true",
-                      "OPENCLAW_SESSION_MAX_AGE_HOURS": "24"
+                      "OPENCLAW_GATEWAY_TOKEN": "${fn.randomSecret(32)}"
                     },
-                    "files": {
-                      "openclaw.json": "${args.OPENCLAW_CONFIG}"
-                    },
+                    "files": {},
                     "dockerSecretMounts": {}
                   },
                   "addonDependencies": [],
-                  "name": "OpenClaw Gateway Secrets",
-                  "description": "Secure credentials and configuration for OpenClaw Gateway",
+                  "name": "OpenClaw Secrets",
                   "restrictions": {
-                    "restricted": true,
+                    "restricted": false,
                     "nfObjects": [],
-                    "tags": ["production", "sensitive"]
+                    "tags": []
                   }
                 },
                 "ref": "openclaw-secrets"
               },
               {
                 "kind": "CombinedService",
-                "ref": "openclaw-gateway",
+                "ref": "openclaw-service",
                 "spec": {
                   "deployment": {
                     "instances": 1,
-                    "minInstances": 1,
-                    "maxInstances": 3,
                     "storage": {
                       "ephemeralStorage": {
-                        "storageSize": 2048
+                        "storageSize": 1024
                       },
-                      "shmSize": 128
+                      "shmSize": 64
                     },
                     "docker": {
-                      "configType": "default",
-                      "privileged": false,
-                      "readOnlyRootFilesystem": true
+                      "configType": "default"
                     }
                   },
                   "loadBalancing": {
-                    "mode": "leastConnection",
-                    "sessionAffinity": "cookie"
+                    "mode": "leastConnection"
                   },
                   "buildSettings": {
                     "storage": {
@@ -107,66 +85,41 @@
                     },
                     "dockerfile": {
                       "buildEngine": "buildkit",
-                      "dockerWorkDir": "/app",
+                      "dockerWorkDir": "/",
                       "dockerFilePath": "/Dockerfile",
                       "buildkit": {
-                        "useCache": true,
+                        "useCache": false,
                         "cacheStorageSize": 16384
                       }
                     }
                   },
                   "billing": {
-                    "deploymentPlan": "nf-compute-200-8",
+                    "deploymentPlan": "nf-compute-100-4",
                     "buildPlan": "nf-compute-400-16"
                   },
                   "vcsData": {
-                    "projectUrl": "https://github.com/hoopstreet/one-commander",
+                    "projectUrl": "https://github.com/northflank-examples/clawdbot-northflank-template",
                     "projectType": "github",
                     "projectBranch": "main"
                   },
                   "runtimeEnvironment": {},
                   "runtimeFiles": {},
-                  "buildArguments": {
-                    "OPENCLAW_DOCKER_APT_PACKAGES": "ffmpeg libwebp libheif libimage-exiftool"
-                  },
+                  "buildArguments": {},
                   "buildFiles": {},
                   "dockerSecretMounts": {},
                   "infrastructure": {
                     "architecture": "x86"
                   },
-                  "name": "OpenClaw Gateway Service",
-                  "description": "Main OpenClaw Gateway with Telegram and Flutter integration",
+                  "name": "OpenClaw Service",
                   "ports": [
-                    {
-                      "internalPort": 18789,
-                      "protocol": "HTTP",
-                      "name": "gateway-ws",
-                      "public": true,
-                      "domains": [],
-                      "security": {
-                        "policies": [
-                          {
-                            "type": "ipAllowList",
-                            "value": "0.0.0.0/0"
-                          }
-                        ],
-                        "credentials": []
-                      },
-                      "disableNfDomain": false
-                    },
                     {
                       "internalPort": 8080,
                       "protocol": "HTTP",
-                      "name": "flutter-api",
+                      "name": "p01",
                       "public": true,
                       "domains": [],
                       "security": {
-                        "policies": [
-                          {
-                            "type": "ipAllowList",
-                            "value": "0.0.0.0/0"
-                          }
-                        ],
+                        "policies": [],
                         "credentials": []
                       },
                       "disableNfDomain": false
@@ -174,15 +127,7 @@
                   ],
                   "disabledCI": false,
                   "buildConfiguration": {
-                    "pathIgnoreRules": [
-                      "node_modules/",
-                      "dist/",
-                      "ui/dist/",
-                      ".git/",
-                      "vendor/",
-                      "*.log",
-                      "*.tmp"
-                    ],
+                    "pathIgnoreRules": [],
                     "isAllowList": false,
                     "ciIgnoreFlagsEnabled": false
                   },
@@ -191,56 +136,13 @@
                       "type": "startupProbe",
                       "protocol": "HTTP",
                       "path": "/healthz",
-                      "port": 18789,
-                      "initialDelaySeconds": 15,
-                      "periodSeconds": 30,
-                      "timeoutSeconds": 5,
-                      "failureThreshold": 15,
-                      "successThreshold": 1
-                    },
-                    {
-                      "type": "livenessProbe",
-                      "protocol": "HTTP",
-                      "path": "/healthz",
-                      "port": 18789,
-                      "initialDelaySeconds": 30,
-                      "periodSeconds": 20,
-                      "timeoutSeconds": 3,
-                      "failureThreshold": 3,
-                      "successThreshold": 1
-                    },
-                    {
-                      "type": "readinessProbe",
-                      "protocol": "HTTP",
-                      "path": "/healthz",
-                      "port": 18789,
-                      "initialDelaySeconds": 10,
-                      "periodSeconds": 10,
-                      "timeoutSeconds": 2,
-                      "failureThreshold": 3,
-                      "successThreshold": 1
+                      "port": 8080,
+                      "initialDelaySeconds": 5,
+                      "periodSeconds": 60,
+                      "timeoutSeconds": 10,
+                      "failureThreshold": 3
                     }
-                  ],
-                  "environmentVariables": {
-                    "OPENCLAW_GATEWAY_PORT": "18789",
-                    "OPENCLAW_GATEWAY_BIND": "lan",
-                    "OPENCLAW_GATEWAY_TOKEN": "${refs.openclaw-secrets.spec.secrets.variables.OPENCLAW_GATEWAY_TOKEN}",
-                    "OPENCLAW_GATEWAY_PASSWORD": "${refs.openclaw-secrets.spec.secrets.variables.OPENCLAW_GATEWAY_PASSWORD}",
-                    "OPENCLAW_STATE_DIR": "/data/.openclaw",
-                    "OPENCLAW_WORKSPACE_DIR": "/data/workspace",
-                    "TELEGRAM_BOT_TOKEN": "${refs.openclaw-secrets.spec.secrets.variables.TELEGRAM_BOT_TOKEN}",
-                    "TELEGRAM_WEBHOOK_SECRET": "${refs.openclaw-secrets.spec.secrets.variables.TELEGRAM_WEBHOOK_SECRET}",
-                    "FLUTTER_APP_TOKEN": "${refs.openclaw-secrets.spec.secrets.variables.FLUTTER_APP_TOKEN}",
-                    "OPENCLAW_GATEWAY_ALLOW_UNCONFIGURED": "true",
-                    "OPENCLAW_GATEWAY_AUTH_MODE": "password",
-                    "OPENCLAW_GATEWAY_TRUSTED_PROXIES": "${refs.openclaw-secrets.spec.secrets.variables.OPENCLAW_GATEWAY_TRUSTED_PROXIES}",
-                    "OPENCLAW_GATEWAY_RATE_LIMIT": "${refs.openclaw-secrets.spec.secrets.variables.OPENCLAW_GATEWAY_RATE_LIMIT}",
-                    "OPENCLAW_GATEWAY_MAX_CONNECTIONS": "${refs.openclaw-secrets.spec.secrets.variables.OPENCLAW_GATEWAY_MAX_CONNECTIONS}",
-                    "OPENCLAW_LOGGING_LEVEL": "${refs.openclaw-secrets.spec.secrets.variables.OPENCLAW_LOGGING_LEVEL}",
-                    "OPENCLAW_SECURITY_AUDIT_ENABLED": "${refs.openclaw-secrets.spec.secrets.variables.OPENCLAW_SECURITY_AUDIT_ENABLED}",
-                    "OPENCLAW_SESSION_PRUNING_ENABLED": "${refs.openclaw-secrets.spec.secrets.variables.OPENCLAW_SESSION_PRUNING_ENABLED}",
-                    "OPENCLAW_SESSION_MAX_AGE_HOURS": "${refs.openclaw-secrets.spec.secrets.variables.OPENCLAW_SESSION_MAX_AGE_HOURS}"
-                  }
+                  ]
                 }
               },
               {
@@ -248,7 +150,7 @@
                 "spec": {
                   "spec": {
                     "accessMode": "ReadWriteOnce",
-                    "storageSize": 20480,
+                    "storageSize": 10240,
                     "storageClassName": "nvme"
                   },
                   "mounts": [
@@ -257,68 +159,15 @@
                       "volumeMountPath": ""
                     }
                   ],
-                  "name": "OpenClaw Persistent Storage",
-                  "description": "Persistent storage for OpenClaw state, workspace, and configuration",
+                  "name": "OpenClaw Volume",
                   "attachedObjects": [
                     {
-                      "id": "${refs.openclaw-gateway.id}",
+                      "id": "${refs.openclaw-service.id}",
                       "type": "service"
                     }
                   ]
                 },
                 "ref": "openclaw-volume"
-              },
-              {
-                "kind": "Job",
-                "ref": "openclaw-telegram-webhook-setup",
-                "spec": {
-                  "name": "Telegram Webhook Setup",
-                  "description": "Configure Telegram webhook after deployment",
-                  "deployment": {
-                    "instances": 1,
-                    "storage": {
-                      "ephemeralStorage": {
-                        "storageSize": 512
-                      }
-                    },
-                    "docker": {
-                      "configType": "default"
-                    }
-                  },
-                  "billing": {
-                    "deploymentPlan": "nf-compute-100-4"
-                  },
-                  "vcsData": {
-                    "projectUrl": "https://github.com/hoopstreet/one-commander",
-                    "projectType": "github",
-                    "projectBranch": "main"
-                  },
-                  "dockerfile": {
-                    "buildEngine": "buildkit",
-                    "dockerWorkDir": "/app",
-                    "dockerFilePath": "/Dockerfile",
-                    "buildkit": {
-                      "useCache": true
-                    }
-                  },
-                  "runCommand": [
-                    "sh",
-                    "-c",
-                    "node openclaw.mjs channels login --channel telegram --token ${TELEGRAM_BOT_TOKEN} && node openclaw.mjs telegram webhook --url https://${refs.openclaw-gateway.spec.ports[0].name}.${refs.openclaw.id}.nf.sh/telegram-webhook --secret ${TELEGRAM_WEBHOOK_SECRET}"
-                  ],
-                  "environmentVariables": {
-                    "TELEGRAM_BOT_TOKEN": "${refs.openclaw-secrets.spec.secrets.variables.TELEGRAM_BOT_TOKEN}",
-                    "TELEGRAM_WEBHOOK_SECRET": "${refs.openclaw-secrets.spec.secrets.variables.TELEGRAM_WEBHOOK_SECRET}"
-                  },
-                  "triggers": {
-                    "onServiceDeploy": [
-                      {
-                        "serviceId": "${refs.openclaw-gateway.id}",
-                        "condition": "completed"
-                      }
-                    ]
-                  }
-                }
               }
             ]
           }
@@ -327,17 +176,11 @@
     }
   },
   "arguments": {
-    "TELEGRAM_BOT_TOKEN": "8809223927:AAHs7myPMYFYYBcABbXH-jguY_gBPZm1LCU",
-    "GATEWAY_PASSWORD": "",
-    "OPENCLAW_CONFIG": "{\n  \"agent\": {\n    \"model\": \"gpt-4o-mini\",\n    \"provider\": \"openai\",\n    \"fallback\": [\"anthropic/claude-3-5-sonnet\", \"google/gemini-1.5-flash\"]\n  },\n  \"gateway\": {\n    \"port\": 18789,\n    \"bind\": \"lan\",\n    \"auth\": {\n      \"mode\": \"password\",\n      \"allowTailscale\": false\n    },\n    \"allowUnconfigured\": true,\n    \"trustedProxies\": [\"10.0.0.0/8\", \"172.16.0.0/12\", \"192.168.0.0/16\"],\n    \"rateLimit\": 100,\n    \"maxConnections\": 1000\n  },\n  \"channels\": {\n    \"telegram\": {\n      \"botToken\": \"${TELEGRAM_BOT_TOKEN}\",\n      \"webhookUrl\": \"https://${SERVICE_URL}/telegram-webhook\",\n      \"webhookSecret\": \"${TELEGRAM_WEBHOOK_SECRET}\",\n      \"allowFrom\": [\"*\"],\n      \"dmPolicy\": \"pairing\",\n      \"groups\": {\n        \"*\": {\n          \"requireMention\": true\n        }\n      },\n      \"streamMode\": \"block\",\n      \"commands\": {\n        \"native\": true,\n        \"text\": true\n      }\n    }\n  },\n  \"agents\": {\n    \"defaults\": {\n      \"workspace\": \"/data/workspace\",\n      \"sandbox\": {\n        \"mode\": \"non-main\",\n        \"allowlist\": [\"bash\", \"read\", \"write\", \"edit\", \"process\", \"sessions_list\", \"sessions_history\", \"sessions_send\", \"sessions_spawn\"]\n      }\n    }\n  },\n  \"browser\": {\n    \"enabled\": false\n  },\n  \"logging\": {\n    \"level\": \"info\",\n    \"redact\": [\"TELEGRAM_BOT_TOKEN\", \"OPENCLAW_GATEWAY_TOKEN\", \"OPENCLAW_GATEWAY_PASSWORD\"]\n  },\n  \"security\": {\n    \"auditEnabled\": true,\n    \"sessionPruning\": {\n      \"enabled\": true,\n      \"maxAgeHours\": 24,\n      \"intervalHours\": 1\n    },\n    \"dmPolicy\": \"pairing\"\n  },\n  \"flutter\": {\n    \"appToken\": \"${FLUTTER_APP_TOKEN}\",\n    \"allowedOrigins\": [\"*\"],\n    \"corsEnabled\": true\n  }\n}"
+    "SETUP_PASSWORD": ""
   },
   "options": {
     "autorun": true,
-    "concurrencyPolicy": "forbid",
-    "retryPolicy": {
-      "maxAttempts": 3,
-      "backoffMultiplier": 2
-    }
+    "concurrencyPolicy": "allow"
   },
   "gitops": {
     "repoUrl": "https://github.com/hoopstreet/one-commander",
